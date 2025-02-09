@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>学生信息</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@primer/css@21.5.1/dist/primer.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.0/papaparse.min.js"></script>
+  <style>
+    ul {
+      margin-left: 20px;  /* 增加列表项的左侧缩进 */
+      padding-left: 20px; /* 确保左侧留空 */
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+      background-color: #f6f8fa;
+      color: #24292f;
+      padding: 20px;
+    }
+    .container-lg {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      color: #0366d6;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .table {
+      width: 100%;
+      margin: 0;
+      border-collapse: collapse;
+    }
+    .table th, .table td {
+      padding: 12px 15px;
+      text-align: left;
+      cursor: pointer;
+      border-bottom: 1px solid #e1e4e8;
+    }
+    .table th {
+      background-color: #f1f8ff;
+      color: #24292f;
+      font-weight: bold;
+    }
+    .table tr:nth-child(even) {
+      background-color: #f6f8fa;
+    }
+    .table tr:hover {
+      background-color: #e6f2ff;
+    }
+    .alert {
+      background-color: #fff3cd;
+      color: #856404;
+      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ffeeba;
+    }
+    .info, .hash {
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+    .info {
+      color: #2c3e50;
+    }
+    .hash {
+      color: #24292f;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-lg">
+    <h1>学生信息</h1>
+<!-- 
+    <div class="alert">
+      <p class="alert-title">注意：</p>
+      <p>以下是班级学生的基本信息，包含姓名、学号及班级等。请确保数据的保密性。</p>
+      <p>为了了解同学 / 加微信等目的，本网站建立了八年级学生系统。</p>
+      <p>因为是通过询问等方式建立的，所以有错误很正常，所以加入了修正功能：</p>
+      <ul>
+        <li>可以加微信：<strong>Kimi-ZJX</strong>，头像同网站图标</li>
+        <li>email: <a href="mailto:qmwneb946@gmail.com">qmwneb946@gmail.com</a></li>
+        <li>因为微信的数据大量缺失，加入了更新通道，有人工审核，不保证时间。</li>
+      </ul>
+      <p><a href="update">点击链接更新</a></p>
+      <p class="alert-footer">注意：我已经给名字加入了 *，但是还是提醒一下不要作任何的违法事请。</p>
+    </div> -->
+
+    <!-- 总人数显示 -->
+    <div class="info" id="total-count">总人数: 0</div>
+
+    <!-- 提交哈希 -->
+    <div class="hash" id="csv-hash">CSV 提交哈希: 正在加载...</div>
+    <div class="hash" id="html-hash">HTML 提交哈希: 正在加载...</div>
+
+    <!-- 表格 -->
+    <table class="table" id="student-table">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">班级</th>
+          <th onclick="sortTable(1)">学生姓名</th>
+          <th onclick="sortTable(2)">学号</th>
+          <th onclick="sortTable(3)">微信号</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 数据会被填充到这里 -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const repo = 'qmwneb946/qmwneb946.github.io';
+    const csvPath = 'student.csv';
+    const htmlPath = 'student.html';
+
+    // 定义每一列的排序状态数组，初始状态为0（未排序）
+    let sortState = [1, 0, 0, 0];
+
+    // 获取文件哈希
+    function loadCommitHash(filePath, elementId, type) {
+      fetch(`https://api.github.com/repos/${repo}/commits?path=${filePath}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            const commitHash = data[0].sha.substring(0, 7);
+            document.getElementById(elementId).innerText = `${type} 哈希: ${commitHash}`;
+          } else {
+            document.getElementById(elementId).innerText = `${type} 哈希: 无法获取`;
+          }
+        })
+        .catch(error => {
+          document.getElementById(elementId).innerText = `${type} 哈希: 错误 - ${error.message}`;
+        });
+    }
+
+    // 读取CSV并渲染表格
+    function loadCSV() {
+      Papa.parse('student.csv', {
+        download: true,
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          console.log('CSV 加载完成:', results); // 打印加载完成的结果
+          if (results.errors.length) {
+            console.error('CSV 解析错误:', results.errors);
+          } else {
+            const studentData = results.data;
+            // 打印字段名（列名）
+            console.log('字段名:', Object.keys(studentData[0]));
+            renderTable(studentData);
+            updateTotalCount(studentData);
+          }
+        },
+        error: function(error) {
+          console.error('CSV 加载错误:', error); // 打印加载过程中发生的错误
+        }
+      });
+    }
+
+    // 动态渲染表格
+    function renderTable(data) {
+      const tableBody = document.querySelector('#student-table tbody');
+      tableBody.innerHTML = ''; // 清空现有内容
+
+      if (data.length === 0) {
+        console.log('没有数据');
+        return; // 如果没有数据，直接返回
+      }
+
+      data.forEach(row => {
+        console.log('正在渲染的数据:', row);
+        if (row['班级'] && row['学*姓名'] && row['学号']) {  // 使用正确的字段名
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row['班级'] || ''}</td>
+            <td>${row['学*姓名'] || ''}</td>  <!-- 确保字段名一致 -->
+            <td>${row['学号'] || ''}</td>
+            <td>${row['微信号/手机号'] || ''}</td>
+          `;
+          tableBody.appendChild(tr);
+        } else {
+          console.log('数据缺少必要的字段:', row);
+        }
+      });
+    }
+
+    // 更新总人数显示
+    function updateTotalCount(data) {
+      document.getElementById('total-count').innerText = `总人数: ${data.length}`;
+    }
+
+    // 排序表格函数
+    function sortTable(columnIndex) {
+      const rows = Array.from(document.querySelectorAll('#student-table tbody tr'));
+      const isNumeric = columnIndex === 2; // 学号是数字列，其他为字符串列
+      const isClassColumn = columnIndex === 0; // 判断是否是班级列
+
+      // 如果该列之前是升序，点击后变为降序，反之亦然
+      if (sortState[columnIndex] === 0 || sortState[columnIndex] === -1) {
+        sortState[columnIndex] = 1; // 设为升序
+      } else if (sortState[columnIndex] === 1) {
+        sortState[columnIndex] = -1; // 设为降序
+      }
+
+      // 排序操作
+      if (sortState[columnIndex] === 1) {
+        rows.sort((a, b) => {
+          const cellA = a.cells[columnIndex].innerText;
+          const cellB = b.cells[columnIndex].innerText;
+          // 如果是班级列，按数字排序
+          if (isClassColumn) {
+            return parseInt(cellA) - parseInt(cellB);
+          }
+          return isNumeric
+            ? parseInt(cellA) - parseInt(cellB)
+            : cellA.localeCompare(cellB);
+        });
+      } else if (sortState[columnIndex] === -1) {
+        rows.sort((a, b) => {
+          const cellA = a.cells[columnIndex].innerText;
+          const cellB = b.cells[columnIndex].innerText;
+          // 如果是班级列，按数字排序
+          if (isClassColumn) {
+            return parseInt(cellB) - parseInt(cellA);
+          }
+          return isNumeric
+            ? parseInt(cellB) - parseInt(cellA)
+            : cellB.localeCompare(cellA);
+        });
+      }
+
+      // 重新渲染表格
+      const tableBody = document.querySelector('#student-table tbody');
+      rows.forEach(row => tableBody.appendChild(row));
+    }
+
+    // 页面加载完成后调用
+    window.onload = function() {
+      sortTable();
+      loadCSV();
+      sortTable();
+      loadCommitHash(csvPath, 'csv-hash', "数据");
+      loadCommitHash(htmlPath, 'html-hash', "UI");
+      sortTable();
+    };
+  </script>
+</body>
+</html>

@@ -78,20 +78,6 @@
 <body>
   <div class="container-lg">
     <h1>学生信息</h1>
-<!-- 
-    <div class="alert">
-      <p class="alert-title">注意：</p>
-      <p>以下是班级学生的基本信息，包含姓名、学号及班级等。请确保数据的保密性。</p>
-      <p>为了了解同学 / 加微信等目的，本网站建立了八年级学生系统。</p>
-      <p>因为是通过询问等方式建立的，所以有错误很正常，所以加入了修正功能：</p>
-      <ul>
-        <li>可以加微信：<strong>Kimi-ZJX</strong>，头像同网站图标</li>
-        <li>email: <a href="mailto:qmwneb946@gmail.com">qmwneb946@gmail.com</a></li>
-        <li>因为微信的数据大量缺失，加入了更新通道，有人工审核，不保证时间。</li>
-      </ul>
-      <p><a href="update">点击链接更新</a></p>
-      <p class="alert-footer">注意：我已经给名字加入了 *，但是还是提醒一下不要作任何的违法事请。</p>
-    </div> -->
 
     <!-- 总人数显示 -->
     <div class="info" id="total-count">总人数: 0</div>
@@ -122,7 +108,7 @@
     const htmlPath = 'student.html';
 
     // 定义每一列的排序状态数组，初始状态为0（未排序）
-    let sortState = [0, 1, 0, 0];
+    let sortState = [1, 0, 0, 0];
 
     // 获取文件哈希
     function loadCommitHash(filePath, elementId, type) {
@@ -245,12 +231,11 @@
 
     // 页面加载完成后调用
     window.onload = function() {
-      sortTable();
       loadCSV();
-      sortTable();
       loadCommitHash(csvPath, 'csv-hash', "数据");
       loadCommitHash(htmlPath, 'html-hash', "UI");
-      sortTable();
+      // 页面加载完成时直接按学号排序
+      setTimeout(() => sortTable(2), 100); // 延迟执行排序，确保表格数据已渲染
     };
   </script>
 </body>
